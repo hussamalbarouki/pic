@@ -1,0 +1,30 @@
+services:
+  editor-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    init: true
+    environment:
+      COMFY_URL: http://comfyui:8188
+      DATA_DIR: /data
+      APP_USERNAME: admin
+      APP_PASSWORD: change-this-password
+      MAX_UPLOAD_MB: "30"
+      JOB_RETENTION_HOURS: "24"
+    volumes:
+      - editor-data:/data
+    expose:
+      - "8000"
+    cpus: "0.75"
+    mem_limit: 768m
+    memswap_limit: 1g
+    pids_limit: 256
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  editor-data:

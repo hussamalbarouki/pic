@@ -1,0 +1,587 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>محرر الصور المحلي</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b0d12;
+      --panel: #121620;
+      --panel-2: #171c28;
+      --text: #f5f7fb;
+      --muted: #aab3c4;
+      --border: #2a3242;
+      --accent: #7c8cff;
+      --accent-2: #9aa6ff;
+      --danger: #ff6b75;
+      --success: #56d18b;
+      --warning: #ffc857;
+      --radius: 18px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: radial-gradient(circle at top, #171c2a 0, var(--bg) 45%);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      min-height: 100vh;
+    }
+    button, input, textarea, select { font: inherit; }
+    button, input, textarea, select { color: var(--text); }
+    .page { max-width: 1240px; margin: 0 auto; padding: 24px; }
+    .topbar { display:flex; justify-content:space-between; gap:16px; align-items:flex-start; margin-bottom:20px; }
+    h1 { margin:0 0 6px; font-size: clamp(1.5rem, 3vw, 2.25rem); }
+    .subtitle { margin:0; color:var(--muted); line-height:1.8; }
+    .badge { background:rgba(124,140,255,.14); color:#ccd2ff; border:1px solid rgba(124,140,255,.35); padding:8px 12px; border-radius:999px; white-space:nowrap; }
+    .grid { display:grid; grid-template-columns:minmax(0,1.1fr) minmax(340px,.9fr); gap:18px; align-items:start; }
+    .card { background:rgba(18,22,32,.93); border:1px solid var(--border); border-radius:var(--radius); padding:18px; box-shadow:0 20px 50px rgba(0,0,0,.22); }
+    .section-title { margin:0 0 14px; font-size:1.08rem; }
+    .upload {
+      border:1px dashed #46516a;
+      background:rgba(255,255,255,.025);
+      border-radius:16px;
+      padding:14px;
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
+    }
+    input[type=file] { max-width:100%; }
+    .canvas-wrap {
+      margin-top:14px;
+      min-height:320px;
+      border:1px solid var(--border);
+      border-radius:16px;
+      background:#080a0f;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+      position:relative;
+    }
+    #editorCanvas { width:100%; height:auto; max-height:72vh; object-fit:contain; touch-action:none; display:none; cursor:crosshair; }
+    .placeholder { color:var(--muted); padding:42px 20px; text-align:center; line-height:1.8; }
+    .toolbar { display:grid; grid-template-columns:1fr auto auto auto; gap:10px; align-items:end; margin-top:14px; }
+    label { display:block; font-size:.94rem; margin-bottom:7px; }
+    .help { color:var(--muted); font-size:.83rem; line-height:1.55; margin:7px 0 0; }
+    input[type=text], input[type=number], textarea, select, input[type=range] {
+      width:100%;
+      border:1px solid var(--border);
+      background:var(--panel-2);
+      border-radius:12px;
+      padding:11px 12px;
+      outline:none;
+    }
+    input:focus, textarea:focus, select:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(124,140,255,.12); }
+    textarea { min-height:110px; resize:vertical; line-height:1.65; }
+    .btn {
+      border:1px solid var(--border);
+      background:#202738;
+      color:var(--text);
+      padding:10px 14px;
+      border-radius:12px;
+      cursor:pointer;
+      transition:.15s ease;
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      min-height:44px;
+    }
+    .btn:hover { transform:translateY(-1px); border-color:#4d5a78; }
+    .btn.primary { background:var(--accent); color:white; border-color:transparent; font-weight:700; }
+    .btn.danger { background:rgba(255,107,117,.13); border-color:rgba(255,107,117,.4); color:#ffb8be; }
+    .btn.active { background:rgba(124,140,255,.23); border-color:var(--accent); }
+    .btn:disabled { opacity:.5; cursor:not-allowed; transform:none; }
+    .fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+    .field.full { grid-column:1/-1; }
+    .range-row { display:grid; grid-template-columns:1fr 86px; gap:10px; align-items:center; }
+    .advanced { margin-top:14px; }
+    details { border:1px solid var(--border); border-radius:14px; padding:12px 14px; background:rgba(255,255,255,.018); }
+    summary { cursor:pointer; font-weight:700; }
+    .actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:16px; }
+    .progress-card { margin-top:18px; display:none; }
+    .progress-meta { display:flex; justify-content:space-between; gap:12px; margin-bottom:9px; }
+    .progress-track { height:14px; background:#090b11; border:1px solid var(--border); border-radius:999px; overflow:hidden; }
+    .progress-bar { height:100%; width:0%; background:linear-gradient(90deg,var(--accent),var(--accent-2)); transition:width .25s ease; }
+    .status { color:var(--muted); margin:9px 0 0; min-height:1.5em; }
+    .result-card { margin-top:18px; display:none; }
+    .result-card img { width:100%; max-height:72vh; object-fit:contain; border-radius:14px; border:1px solid var(--border); background:#080a0f; }
+    .notice { border:1px solid rgba(255,200,87,.35); background:rgba(255,200,87,.08); color:#ffe2a0; border-radius:14px; padding:12px 14px; line-height:1.7; margin-bottom:16px; }
+    .error { color:#ffb2b8; }
+    .success { color:#95efb9; }
+    .raw-json { direction:ltr; text-align:left; font-family:ui-monospace,SFMono-Regular,Consolas,monospace; min-height:360px; font-size:.82rem; }
+    .small-row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .switch-row { display:flex; align-items:center; gap:8px; margin-top:8px; }
+    .switch-row input { width:18px; height:18px; }
+    .dimensions { color:var(--muted); font-size:.86rem; margin-top:8px; }
+    @media (max-width: 900px) {
+      .grid { grid-template-columns:1fr; }
+      .topbar { flex-direction:column; }
+      .toolbar { grid-template-columns:1fr 1fr; }
+    }
+    @media (max-width: 580px) {
+      .page { padding:14px; }
+      .fields { grid-template-columns:1fr; }
+      .field.full { grid-column:auto; }
+      .toolbar { grid-template-columns:1fr; }
+      .actions .btn { flex:1 1 100%; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="topbar">
+      <div>
+        <h1>محرر الصور المحلي</h1>
+        <p class="subtitle">ارفع صورة، لوّن الجزء المطلوب تغييره، عدّل الإعدادات، ثم راقب التقدم حتى 100% وحمّل النتيجة.</p>
+      </div>
+      <div class="badge">ComfyUI Inpainting</div>
+    </header>
+
+    <div class="notice">
+      المنطقة الحمراء هي الجزء الذي سيُعاد توليده. لتغيير الملابس، لوّن الملابس فقط مع هامش صغير حول الأطراف، وتجنب الوجه واليدين قدر الإمكان.
+    </div>
+
+    <section class="grid">
+      <div>
+        <div class="card">
+          <h2 class="section-title">1. الصورة والقناع</h2>
+          <div class="upload">
+            <div>
+              <label for="imageInput">اختر الصورة الأصلية</label>
+              <input id="imageInput" type="file" accept="image/png,image/jpeg,image/webp">
+            </div>
+            <button id="fitButton" class="btn" type="button">إعادة ضبط العرض</button>
+          </div>
+          <div class="canvas-wrap" id="canvasWrap">
+            <canvas id="editorCanvas"></canvas>
+            <div id="placeholder" class="placeholder">ارفع صورة لتظهر هنا، ثم ارسم فوق الملابس أو الجزء الذي تريد تغييره.</div>
+          </div>
+          <div class="dimensions" id="dimensions"></div>
+          <div class="toolbar">
+            <div>
+              <label for="brushSize">حجم الفرشاة: <span id="brushValue">42</span> px</label>
+              <input id="brushSize" type="range" min="4" max="220" value="42">
+            </div>
+            <button id="paintButton" class="btn active" type="button">فرشاة</button>
+            <button id="eraseButton" class="btn" type="button">ممحاة</button>
+            <button id="clearMaskButton" class="btn danger" type="button">مسح القناع</button>
+          </div>
+          <p class="help">يمكنك الرسم بالماوس أو اللمس. لون القناع لا يدخل إلى الصورة النهائية؛ هو فقط لتحديد المنطقة.</p>
+        </div>
+
+        <div class="card progress-card" id="progressCard">
+          <div class="progress-meta">
+            <strong id="progressTitle">جارٍ التحضير</strong>
+            <strong id="progressPercent">0%</strong>
+          </div>
+          <div class="progress-track"><div class="progress-bar" id="progressBar"></div></div>
+          <p class="status" id="statusText"></p>
+          <div class="actions">
+            <button id="cancelButton" class="btn danger" type="button">إيقاف المهمة</button>
+          </div>
+        </div>
+
+        <div class="card result-card" id="resultCard">
+          <h2 class="section-title">النتيجة</h2>
+          <img id="resultImage" alt="الصورة الناتجة">
+          <div class="actions">
+            <a id="downloadButton" class="btn primary" href="#" download>تحميل الصورة</a>
+            <button id="newEditButton" class="btn" type="button">تعديل جديد</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="section-title">2. وصف التعديل والإعدادات</h2>
+        <div class="fields">
+          <div class="field full">
+            <label for="positivePrompt">وصف النتيجة المطلوبة</label>
+            <textarea id="positivePrompt"></textarea>
+            <p class="help">اكتب النتيجة النهائية بوضوح، مثل: شخص يرتدي جاكيت جلد أسود واقعي مع طيات قماش طبيعية.</p>
+          </div>
+          <div class="field full">
+            <label for="negativePrompt">الأشياء غير المرغوبة</label>
+            <textarea id="negativePrompt"></textarea>
+            <p class="help">يقلل التشوهات والعلامات المائية والأسلوب الكرتوني.</p>
+          </div>
+
+          <div class="field">
+            <label for="denoise">قوة التغيير Denoise</label>
+            <div class="range-row">
+              <input id="denoise" type="range" min="0" max="1" step="0.01" value="0.90">
+              <input id="denoiseNumber" type="number" min="0" max="1" step="0.01" value="0.90">
+            </div>
+            <p class="help">0.6 تعديل خفيف، 0.8 متوسط، 0.9–1.0 تغيير كامل للمنطقة.</p>
+          </div>
+          <div class="field">
+            <label for="steps">عدد الخطوات Steps</label>
+            <input id="steps" type="number" min="1" max="150" value="16">
+            <p class="help">عدد أكبر قد يحسن النتيجة لكنه أبطأ. على CPU ابدأ بـ16.</p>
+          </div>
+          <div class="field">
+            <label for="cfg">قوة الالتزام بالوصف CFG</label>
+            <input id="cfg" type="number" min="0" max="30" step="0.1" value="5">
+            <p class="help">القيمة 4–7 مناسبة غالباً. الزيادة الكبيرة قد تسبب مبالغة وتشوهات.</p>
+          </div>
+          <div class="field">
+            <label for="growMask">توسيع القناع</label>
+            <input id="growMask" type="number" min="0" max="128" value="8">
+            <p class="help">يوسّع حدود القناع لدمج الحواف. ابدأ بـ8 وارفعه عند ظهور حواف واضحة.</p>
+          </div>
+          <div class="field">
+            <label for="maxSide">أقصى ضلع للصورة</label>
+            <select id="maxSide">
+              <option value="512">512 — أسرع</option>
+              <option value="640">640</option>
+              <option value="768" selected>768 — متوازن</option>
+              <option value="896">896 — أبطأ</option>
+              <option value="1024">1024 — ثقيل على CPU</option>
+              <option value="0">الحجم الأصلي</option>
+            </select>
+            <p class="help">يُصغّر الصورة تلقائياً مع الحفاظ على النسبة. 768 هو الأنسب لسيرفرك.</p>
+          </div>
+          <div class="field">
+            <label for="seed">Seed</label>
+            <input id="seed" type="number" min="-1" value="-1">
+            <p class="help">ضع -1 لنتيجة عشوائية، أو رقماً ثابتاً لإعادة نتيجة مشابهة.</p>
+          </div>
+        </div>
+
+        <div class="advanced">
+          <details>
+            <summary>الإعدادات المتقدمة — كلها قابلة للتعديل</summary>
+            <div class="fields" style="margin-top:14px">
+              <div class="field">
+                <label for="sampler">Sampler</label>
+                <select id="sampler"></select>
+              </div>
+              <div class="field">
+                <label for="scheduler">Scheduler</label>
+                <select id="scheduler"></select>
+              </div>
+              <div class="field full">
+                <label for="checkpoint">النموذج Checkpoint</label>
+                <select id="checkpoint"></select>
+              </div>
+              <div class="field full">
+                <label for="filenamePrefix">بادئة اسم الملف</label>
+                <input id="filenamePrefix" type="text" value="SimpleEditor">
+              </div>
+              <div class="field full">
+                <label for="workflowJson">Workflow JSON الكامل</label>
+                <textarea id="workflowJson" class="raw-json"></textarea>
+                <p class="help">هذا يجعل كل عقدة وكل قيمة قابلة للتعديل. الحقول أعلاه تُطبّق فوق هذا JSON عند التشغيل.</p>
+              </div>
+            </div>
+          </details>
+        </div>
+
+        <div class="actions">
+          <button id="generateButton" class="btn primary" type="button">بدء التعديل</button>
+          <button id="resetSettingsButton" class="btn" type="button">استعادة الإعدادات الأصلية</button>
+        </div>
+        <p id="formMessage" class="status"></p>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const canvas = $('editorCanvas');
+    const ctx = canvas.getContext('2d');
+    const maskCanvas = document.createElement('canvas');
+    const maskCtx = maskCanvas.getContext('2d');
+    let sourceImage = null;
+    let originalFile = null;
+    let drawing = false;
+    let erasing = false;
+    let lastPoint = null;
+    let defaults = null;
+    let activeJobId = null;
+    let jobSocket = null;
+
+    function showMessage(text, type='') {
+      $('formMessage').textContent = text;
+      $('formMessage').className = `status ${type}`;
+    }
+
+    function setSelectOptions(select, values, selected) {
+      select.innerHTML = '';
+      const unique = [...new Set(values || [])];
+      if (selected && !unique.includes(selected)) unique.unshift(selected);
+      for (const value of unique) {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = value;
+        if (value === selected) option.selected = true;
+        select.appendChild(option);
+      }
+    }
+
+    async function loadConfig() {
+      const [configResponse, optionsResponse] = await Promise.all([fetch('/api/config'), fetch('/api/options')]);
+      if (!configResponse.ok) throw new Error('تعذر تحميل الإعدادات');
+      defaults = await configResponse.json();
+      const options = optionsResponse.ok ? await optionsResponse.json() : {};
+      applyDefaults(defaults, options);
+    }
+
+    function applyDefaults(config, options={}) {
+      $('positivePrompt').value = config.positive_prompt || '';
+      $('negativePrompt').value = config.negative_prompt || '';
+      $('steps').value = config.steps ?? 16;
+      $('cfg').value = config.cfg ?? 5;
+      $('denoise').value = config.denoise ?? .9;
+      $('denoiseNumber').value = config.denoise ?? .9;
+      $('growMask').value = config.grow_mask_by ?? 8;
+      $('seed').value = -1;
+      $('filenamePrefix').value = config.filename_prefix || 'SimpleEditor';
+      $('workflowJson').value = JSON.stringify(config.workflow || {}, null, 2);
+      setSelectOptions($('sampler'), options.samplers || [], config.sampler_name || 'dpmpp_sde');
+      setSelectOptions($('scheduler'), options.schedulers || [], config.scheduler || 'karras');
+      setSelectOptions($('checkpoint'), options.checkpoints || [], config.checkpoint || 'Realistic_Vision_V3.0-inpainting.safetensors');
+    }
+
+    function drawComposite() {
+      if (!sourceImage) return;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(sourceImage, 0, 0, canvas.width, canvas.height);
+      ctx.save();
+      ctx.globalAlpha = 0.46;
+      ctx.fillStyle = '#ff385c';
+      ctx.globalCompositeOperation = 'source-over';
+      const mask = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+      const overlay = ctx.createImageData(canvas.width, canvas.height);
+      for (let i = 0; i < mask.data.length; i += 4) {
+        const a = mask.data[i];
+        overlay.data[i] = 255;
+        overlay.data[i + 1] = 40;
+        overlay.data[i + 2] = 85;
+        overlay.data[i + 3] = a;
+      }
+      ctx.putImageData(overlay, 0, 0);
+      ctx.restore();
+    }
+
+    async function loadImageFile(file) {
+      if (!file) return;
+      originalFile = file;
+      const url = URL.createObjectURL(file);
+      const image = new Image();
+      image.onload = () => {
+        sourceImage = image;
+        canvas.width = image.naturalWidth;
+        canvas.height = image.naturalHeight;
+        maskCanvas.width = image.naturalWidth;
+        maskCanvas.height = image.naturalHeight;
+        maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+        canvas.style.display = 'block';
+        $('placeholder').style.display = 'none';
+        $('dimensions').textContent = `الحجم الأصلي: ${image.naturalWidth} × ${image.naturalHeight}`;
+        drawComposite();
+        URL.revokeObjectURL(url);
+      };
+      image.onerror = () => showMessage('تعذر قراءة الصورة.', 'error');
+      image.src = url;
+    }
+
+    function pointerPosition(event) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: (event.clientX - rect.left) * (canvas.width / rect.width),
+        y: (event.clientY - rect.top) * (canvas.height / rect.height),
+      };
+    }
+
+    function drawMaskLine(from, to) {
+      const rect = canvas.getBoundingClientRect();
+      const displayScale = canvas.width / rect.width;
+      const size = Number($('brushSize').value) * displayScale;
+      maskCtx.save();
+      maskCtx.lineCap = 'round';
+      maskCtx.lineJoin = 'round';
+      maskCtx.lineWidth = size;
+      maskCtx.strokeStyle = 'white';
+      maskCtx.globalCompositeOperation = erasing ? 'destination-out' : 'source-over';
+      maskCtx.beginPath();
+      maskCtx.moveTo(from.x, from.y);
+      maskCtx.lineTo(to.x, to.y);
+      maskCtx.stroke();
+      maskCtx.restore();
+      drawComposite();
+    }
+
+    canvas.addEventListener('pointerdown', (event) => {
+      if (!sourceImage) return;
+      drawing = true;
+      lastPoint = pointerPosition(event);
+      canvas.setPointerCapture(event.pointerId);
+      drawMaskLine(lastPoint, {x:lastPoint.x + .01, y:lastPoint.y + .01});
+    });
+    canvas.addEventListener('pointermove', (event) => {
+      if (!drawing) return;
+      const point = pointerPosition(event);
+      drawMaskLine(lastPoint, point);
+      lastPoint = point;
+    });
+    canvas.addEventListener('pointerup', () => { drawing = false; lastPoint = null; });
+    canvas.addEventListener('pointercancel', () => { drawing = false; lastPoint = null; });
+
+    $('imageInput').addEventListener('change', (event) => loadImageFile(event.target.files[0]));
+    $('brushSize').addEventListener('input', () => $('brushValue').textContent = $('brushSize').value);
+    $('paintButton').addEventListener('click', () => {
+      erasing = false; $('paintButton').classList.add('active'); $('eraseButton').classList.remove('active');
+    });
+    $('eraseButton').addEventListener('click', () => {
+      erasing = true; $('eraseButton').classList.add('active'); $('paintButton').classList.remove('active');
+    });
+    $('clearMaskButton').addEventListener('click', () => {
+      maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height); drawComposite();
+    });
+    $('fitButton').addEventListener('click', () => canvas.scrollIntoView({behavior:'smooth', block:'center'}));
+
+    function syncRange(rangeId, numberId) {
+      $(rangeId).addEventListener('input', () => $(numberId).value = $(rangeId).value);
+      $(numberId).addEventListener('input', () => $(rangeId).value = $(numberId).value);
+    }
+    syncRange('denoise', 'denoiseNumber');
+
+    function maskToBlob() {
+      return new Promise((resolve, reject) => {
+        const out = document.createElement('canvas');
+        out.width = maskCanvas.width;
+        out.height = maskCanvas.height;
+        const outCtx = out.getContext('2d');
+        outCtx.fillStyle = 'black';
+        outCtx.fillRect(0, 0, out.width, out.height);
+        outCtx.drawImage(maskCanvas, 0, 0);
+        out.toBlob((blob) => blob ? resolve(blob) : reject(new Error('تعذر إنشاء القناع')), 'image/png');
+      });
+    }
+
+    function collectSettings() {
+      return {
+        positive_prompt: $('positivePrompt').value,
+        negative_prompt: $('negativePrompt').value,
+        steps: Number($('steps').value),
+        cfg: Number($('cfg').value),
+        denoise: Number($('denoiseNumber').value),
+        grow_mask_by: Number($('growMask').value),
+        max_side: Number($('maxSide').value),
+        seed: Number($('seed').value),
+        sampler_name: $('sampler').value,
+        scheduler: $('scheduler').value,
+        checkpoint: $('checkpoint').value,
+        filename_prefix: $('filenamePrefix').value,
+      };
+    }
+
+    function setProgress(job) {
+      $('progressCard').style.display = 'block';
+      const progress = Number(job.progress || 0);
+      $('progressBar').style.width = `${progress}%`;
+      $('progressPercent').textContent = `${progress}%`;
+      $('progressTitle').textContent = ({
+        queued:'في قائمة الانتظار', uploading:'رفع الصورة', connecting:'الاتصال بالمحرك', running:'توليد الصورة', finalizing:'تجهيز النتيجة', completed:'اكتمل', failed:'فشل', cancelled:'تم الإلغاء'
+      })[job.status] || 'جارٍ العمل';
+      $('statusText').textContent = job.message || '';
+      $('statusText').className = `status ${job.status === 'failed' ? 'error' : job.status === 'completed' ? 'success' : ''}`;
+      $('cancelButton').disabled = ['completed','failed','cancelled'].includes(job.status);
+      if (job.status === 'completed' && job.result_url) showResult(job.result_url);
+      if (['completed','failed','cancelled'].includes(job.status)) $('generateButton').disabled = false;
+    }
+
+    function connectJob(jobId) {
+      if (jobSocket) jobSocket.close();
+      const scheme = location.protocol === 'https:' ? 'wss' : 'ws';
+      jobSocket = new WebSocket(`${scheme}://${location.host}/ws/jobs/${jobId}`);
+      jobSocket.onmessage = (event) => setProgress(JSON.parse(event.data));
+      jobSocket.onerror = () => pollJob(jobId);
+      jobSocket.onclose = () => {
+        if (activeJobId === jobId) pollJob(jobId);
+      };
+    }
+
+    async function pollJob(jobId) {
+      if (activeJobId !== jobId) return;
+      try {
+        const response = await fetch(`/api/jobs/${jobId}`);
+        if (!response.ok) return;
+        const job = await response.json();
+        setProgress(job);
+        if (!['completed','failed','cancelled'].includes(job.status)) setTimeout(() => pollJob(jobId), 1000);
+      } catch (_) {
+        setTimeout(() => pollJob(jobId), 1500);
+      }
+    }
+
+    function showResult(url) {
+      const cacheBusted = `${url}?t=${Date.now()}`;
+      $('resultImage').src = cacheBusted;
+      $('downloadButton').href = url;
+      $('resultCard').style.display = 'block';
+      $('resultCard').scrollIntoView({behavior:'smooth', block:'start'});
+      activeJobId = null;
+    }
+
+    $('generateButton').addEventListener('click', async () => {
+      showMessage('');
+      if (!originalFile || !sourceImage) return showMessage('ارفع صورة أولاً.', 'error');
+      if (!$('positivePrompt').value.trim()) return showMessage('اكتب وصف التعديل المطلوب.', 'error');
+      try { JSON.parse($('workflowJson').value); }
+      catch (error) { return showMessage(`Workflow JSON غير صالح: ${error.message}`, 'error'); }
+
+      $('generateButton').disabled = true;
+      $('resultCard').style.display = 'none';
+      $('progressCard').style.display = 'block';
+      setProgress({status:'uploading', progress:1, message:'جارٍ تجهيز الصورة والقناع'});
+
+      try {
+        const maskBlob = await maskToBlob();
+        const form = new FormData();
+        form.append('image', originalFile, originalFile.name || 'input.png');
+        form.append('mask', maskBlob, 'mask.png');
+        form.append('settings_json', JSON.stringify(collectSettings()));
+        form.append('workflow_json', $('workflowJson').value);
+
+        const response = await fetch('/api/jobs', {method:'POST', body:form});
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.detail || 'تعذر بدء المهمة');
+        activeJobId = payload.job_id;
+        connectJob(activeJobId);
+      } catch (error) {
+        $('generateButton').disabled = false;
+        setProgress({status:'failed', progress:0, message:error.message});
+      }
+    });
+
+    $('cancelButton').addEventListener('click', async () => {
+      if (!activeJobId) return;
+      $('cancelButton').disabled = true;
+      await fetch(`/api/jobs/${activeJobId}/cancel`, {method:'POST'});
+    });
+
+    $('resetSettingsButton').addEventListener('click', async () => {
+      if (!defaults) return;
+      const optionsResponse = await fetch('/api/options');
+      const options = optionsResponse.ok ? await optionsResponse.json() : {};
+      applyDefaults(defaults, options);
+      showMessage('تمت استعادة الإعدادات الأصلية.', 'success');
+    });
+
+    $('newEditButton').addEventListener('click', () => {
+      $('resultCard').style.display = 'none';
+      $('progressCard').style.display = 'none';
+      window.scrollTo({top:0, behavior:'smooth'});
+    });
+
+    loadConfig().catch((error) => showMessage(error.message, 'error'));
+  </script>
+</body>
+</html>
