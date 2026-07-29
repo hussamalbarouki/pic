@@ -1,0 +1,64 @@
+{
+  "3": {
+    "inputs": {
+      "seed": 546694984037360,
+      "steps": 16,
+      "cfg": 5,
+      "sampler_name": "dpmpp_sde",
+      "scheduler": "karras",
+      "denoise": 0.9,
+      "model": ["29", 0],
+      "positive": ["6", 0],
+      "negative": ["7", 0],
+      "latent_image": ["26", 0]
+    },
+    "class_type": "KSampler",
+    "_meta": {"title": "KSampler"}
+  },
+  "6": {
+    "inputs": {
+      "text": "a realistic person wearing elegant modern clothing, natural fabric folds, photorealistic, realistic lighting",
+      "clip": ["29", 1]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {"title": "CLIP Text Encode (Prompt)"}
+  },
+  "7": {
+    "inputs": {
+      "text": "watermark, text, blurry, low quality, deformed body, bad anatomy, extra limbs, distorted face, unrealistic fabric",
+      "clip": ["29", 1]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {"title": "CLIP Text Encode (Prompt)"}
+  },
+  "8": {
+    "inputs": {"samples": ["3", 0], "vae": ["29", 2]},
+    "class_type": "VAEDecode",
+    "_meta": {"title": "VAE Decode"}
+  },
+  "9": {
+    "inputs": {"filename_prefix": "SimpleEditor", "images": ["8", 0]},
+    "class_type": "SaveImage",
+    "_meta": {"title": "Save Image"}
+  },
+  "20": {
+    "inputs": {"image": "clipspace/clipspace-painted-masked-1785359503824.png [input]"},
+    "class_type": "LoadImage",
+    "_meta": {"title": "Load Image"}
+  },
+  "26": {
+    "inputs": {
+      "grow_mask_by": 8,
+      "pixels": ["20", 0],
+      "vae": ["29", 2],
+      "mask": ["20", 1]
+    },
+    "class_type": "VAEEncodeForInpaint",
+    "_meta": {"title": "VAE Encode (for Inpainting)"}
+  },
+  "29": {
+    "inputs": {"ckpt_name": "Realistic_Vision_V3.0-inpainting.safetensors"},
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {"title": "Load Checkpoint"}
+  }
+}
